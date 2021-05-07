@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { Box, Grid, IconButton, InputBase, InputLabel, MenuItem, Select } from '@material-ui/core';
+import { SelectInputProps } from '@material-ui/core/Select/SelectInput';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
 import { Pagination } from '@material-ui/lab';
@@ -8,7 +9,6 @@ import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { CardComponent } from './components';
-import './App.css';
 import { getLaunches, IQueryParam } from './services/launches';
 import { StoreLaunchesData, StartLaunchesData } from './store/Launches/reducers';
 import { LaunchesData, LoadingLaunchesData } from './store/Launches/selectors';
@@ -32,14 +32,17 @@ const App = () => {
 	const [filterLaunchDate, setFilterLaunchDate] = useState<string>('all');
 	const [filterLaunchState, setFilterLaunchState] = useState<number>(0);
 
-	const fetchLaunches = async (limit?: number, offset?: number, params?: IQueryParam[]) => {
-		dispatch(StartLaunchesData());
-		const response = await getLaunches(limit, offset, params);
-		if (response.status === 200) {
-			setTotal(response.headers['spacex-api-count']);
-			dispatch(StoreLaunchesData(response.data));
-		}
-	};
+	const fetchLaunches = useCallback(
+		async (limit?: number, offset?: number, params?: IQueryParam[]) => {
+			dispatch(StartLaunchesData());
+			const response = await getLaunches(limit, offset, params);
+			if (response.status === 200) {
+				setTotal(response.headers['spacex-api-count']);
+				dispatch(StoreLaunchesData(response.data));
+			}
+		},
+		[dispatch],
+	);
 
 	useEffect(() => {
 		if (filterLaunchState !== 0) {
@@ -70,13 +73,15 @@ const App = () => {
 		} else {
 			fetchLaunches(CardsPerPage, (pageNumber - 1) * CardsPerPage);
 		}
-	}, [pageNumber, filterLaunchState, filterLaunchDate, queryRocketName]);
+	}, [pageNumber, filterLaunchState, filterLaunchDate, queryRocketName, fetchLaunches]);
 
-	const handleChangePage = (e: any, page: number) => {
+	const handleChangePage = (_e: unknown, page: number) => {
 		setPageNumber(page);
 	};
 
-	const handleChangeRocketName: React.ChangeEventHandler = (event: any) => {
+	const handleChangeRocketName: React.ChangeEventHandler<
+		HTMLTextAreaElement | HTMLInputElement
+	> = (event) => {
 		setQueryRocketName(event.target.value);
 	};
 
@@ -86,16 +91,16 @@ const App = () => {
 		fetchLaunches(CardsPerPage, 0, [{ key: 'rocket_name', value: queryRocketName }]);
 	};
 
-	const handleChangeLaunchDateFilter = (event: any) => {
+	const handleChangeLaunchDateFilter: SelectInputProps['onChange'] = (event) => {
 		setPageNumber(1);
 		setFilterLaunchState(0);
-		setFilterLaunchDate(event.target.value);
+		setFilterLaunchDate(event.target.value as string);
 	};
 
-	const handleChangeLaunchStateFilter = (event: any) => {
+	const handleChangeLaunchStateFilter: SelectInputProps['onChange'] = (event) => {
 		setPageNumber(1);
 		setFilterLaunchDate('all');
-		setFilterLaunchState(event.target.value);
+		setFilterLaunchState(event.target.value as number);
 	};
 
 	if (isLoading) <></>;

@@ -1,11 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
 
-import launches from './Launches/reducers'
+import reducer from './Launches/reducers'
 
 
 
 const rootReducer = {
-  launchesReducer: launches,
+  launchesReducer: reducer,
 }
 
 export const store = configureStore({ reducer:rootReducer })
