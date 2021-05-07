@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Box, Grid } from '@material-ui/core';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
+import { Pagination } from '@material-ui/lab';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { CardComponent } from './components';
@@ -10,22 +11,38 @@ import { getLaunches, IQueryParam } from './services/launches';
 import { StoreLaunchesData, StartLaunchesData } from './store/Launches/reducers';
 import { LaunchesData, LoadingLaunchesData } from './store/Launches/selectors';
 
+const CardsPerPage = 12;
+
 const App = () => {
 	const classes = useStyles();
 	const dispatch = useDispatch();
 	const isLoading = useSelector(LoadingLaunchesData);
 	const launches = useSelector(LaunchesData);
 
+	const [pageNumber, setPageNumber] = useState<number>(1);
+	const [total, setTotal] = useState<number>(0);
+
 	const fetchLaunches = async (limit?: number, offset?: number, params?: IQueryParam[]) => {
 		dispatch(StartLaunchesData());
 		const response = await getLaunches(limit, offset, params);
 		if (response.status === 200) {
+			setTotal(response.headers['spacex-api-count']);
 			dispatch(StoreLaunchesData(response.data));
 		}
 	};
+
 	useEffect(() => {
-		fetchLaunches();
+		fetchLaunches(CardsPerPage, 0);
 	}, []);
+
+	useEffect(() => {
+		fetchLaunches(CardsPerPage, (pageNumber - 1) * CardsPerPage);
+	}, [pageNumber]);
+
+	const handleChangePage = (e: any, page: number) => {
+		setPageNumber(page);
+	};
+
 	if (isLoading) <></>;
 
 	return (
@@ -39,7 +56,16 @@ const App = () => {
 					))}
 				</Grid>
 			</Box>
-			<Box display="flex" justifyContent="center" />
+			<Box display="flex" justifyContent="center">
+				{launches.length > 0 && (
+					<Pagination
+						count={Math.ceil(total / 12)}
+						color="primary"
+						onChange={handleChangePage}
+						page={pageNumber}
+					/>
+				)}
+			</Box>
 		</Box>
 	);
 };
